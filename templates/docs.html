@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>API Documentation — Password Strength Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}"/>
+</head>
+<body>
+
+<header>
+  <div class="logo">Password<span> // </span>API Docs</div>
+  <a href="/" class="docs-link">← Back to Analyzer</a>
+</header>
+
+<div class="docs-wrap">
+
+  <h1 class="docs-title">API Reference</h1>
+  <p class="docs-subtitle">Password Strength Analyzer — REST API v2.0</p>
+
+  <!-- BASE URL -->
+  <div class="docs-section">
+    <h2 class="docs-h2">Base URL</h2>
+    <div class="code-block">http://127.0.0.1:5000</div>
+  </div>
+
+  <!-- SECURITY -->
+  <div class="docs-section">
+    <h2 class="docs-h2">Security</h2>
+    <ul class="docs-list">
+      <li>All endpoints enforce <strong>Content-Type: application/json</strong></li>
+      <li>Rate limit: <strong>30 requests / 60 seconds per IP</strong></li>
+      <li>Passwords are <strong>never logged, stored, or persisted</strong></li>
+      <li>All responses include strict security headers (CSP, X-Frame-Options, etc.)</li>
+      <li>Maximum password input length: <strong>128 characters</strong></li>
+    </ul>
+  </div>
+
+  <!-- ENDPOINT: POST /analyze -->
+  <div class="docs-section">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/analyze</span>
+    </div>
+    <p class="endpoint-desc">Analyze a password and return full strength analysis including criteria, score, entropy, patterns, crack times, and optional HIBP check.</p>
+
+    <h3 class="docs-h3">Request Body</h3>
+    <div class="code-block">{
+  "password": "string",     // required, max 128 chars
+  "check_hibp": false       // optional bool — enables HaveIBeenPwned check
+}</div>
+
+    <h3 class="docs-h3">Response</h3>
+    <div class="code-block">{
+  "score":       85,           // 0–100 overall strength score
+  "entropy":     72.4,         // bits of entropy
+  "level":       "strong",     // none | weak | fair | strong | vstrong
+  "level_label": "Strong",     // human-readable label
+  "length":      16,           // character count
+  "is_common":   false,        // matched common password list
+
+  "criteria": {
+    "meets_min":  true,        // >= 8 characters
+    "meets_rec":  true,        // >= 12 characters
+    "has_upper":  true,
+    "has_lower":  true,
+    "has_number": true,
+    "has_symbol": true
+  },
+
+  "patterns": [
+    {
+      "type":        "keyboard_sequence",
+      "description": "Keyboard walk pattern detected: 'qwerty'",
+      "severity":    "high"    // high | medium
+    }
+  ],
+
+  "crack_times": {
+    "online_throttled":   { "label": "Online attack (throttled)",    "display": "3 years",     "seconds": 9.4e7 },
+    "online_unthrottled": { "label": "Online attack (unthrottled)",  "display": "4 days",      "seconds": 3.4e5 },
+    "offline_gpu":        { "label": "Offline attack (single GPU)",  "display": "2 minutes",   "seconds": 114   },
+    "offline_botnet":     { "label": "Offline attack (botnet)",      "display": "1 seconds",   "seconds": 1.1   }
+  },
+
+  "zxcvbn": {
+    "score":    3,             // 0–4 (null if zxcvbn not installed)
+    "guesses":  1234567,
+    "crack_times": { ... },
+    "feedback": {
+      "warning":     "string | null",
+      "suggestions": ["string", ...]
+    },
+    "sequence": [{ "pattern": "dictionary", "token": "pass" }]
+  },
+
+  "hibp": {
+    "pwned": false,            // null if check_hibp was false
+    "count": 0,
+    "error": null
+  },
+
+  "feedback": [
+    { "type": "tip",  "icon": "💡", "text": "Add uppercase letters..." },
+    { "type": "warn", "icon": "🚨", "text": "Common pattern detected..." },
+    { "type": "good", "icon": "✅", "text": "Strong length..." }
+  ],
+
+  "zxcvbn_available": true
+}</div>
+
+    <h3 class="docs-h3">Error Responses</h3>
+    <table class="docs-table">
+      <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td>Invalid request body or input type</td></tr>
+        <tr><td>415</td><td>Content-Type must be application/json</td></tr>
+        <tr><td>429</td><td>Rate limit exceeded</td></tr>
+        <tr><td>500</td><td>Internal server error</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="docs-h3">Example Request</h3>
+    <div class="code-block">curl -X POST http://127.0.0.1:5000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"password": "MyStr0ng!Pass", "check_hibp": true}'</div>
+  </div>
+
+  <!-- ENDPOINT: POST /report -->
+  <div class="docs-section">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="endpoint-path">/report</span>
+    </div>
+    <p class="endpoint-desc">Generate and download a plain-text security report. The password itself is <strong>never written into the report</strong>.</p>
+
+    <h3 class="docs-h3">Request Body</h3>
+    <div class="code-block">{
+  "password": "string"    // required, max 128 chars
+}</div>
+
+    <h3 class="docs-h3">Response</h3>
+    <p class="endpoint-desc">Returns <code>text/plain</code> file download: <code>password_security_report.txt</code></p>
+
+    <h3 class="docs-h3">Example Request</h3>
+    <div class="code-block">curl -X POST http://127.0.0.1:5000/report \
+  -H "Content-Type: application/json" \
+  -d '{"password": "MyStr0ng!Pass"}' \
+  --output report.txt</div>
+  </div>
+
+  <!-- RATE LIMITING -->
+  <div class="docs-section">
+    <h2 class="docs-h2">Rate Limiting</h2>
+    <p class="endpoint-desc">The API uses a sliding-window rate limiter. In production with Redis, limits are shared across all workers. In development, an in-memory fallback is used.</p>
+    <table class="docs-table">
+      <thead><tr><th>Limit</th><th>Window</th><th>Scope</th></tr></thead>
+      <tbody>
+        <tr><td>30 requests</td><td>60 seconds</td><td>Per IP (fallback)</td></tr>
+        <tr><td>60 requests</td><td>1 hour</td><td>Per IP (Flask-Limiter)</td></tr>
+        <tr><td>200 requests</td><td>24 hours</td><td>Per IP (Flask-Limiter)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- HIBP -->
+  <div class="docs-section">
+    <h2 class="docs-h2">HaveIBeenPwned Integration</h2>
+    <p class="endpoint-desc">When <code>check_hibp: true</code> is passed, the API checks the password against the HIBP Pwned Passwords database using <strong>k-anonymity</strong>:</p>
+    <ol class="docs-list">
+      <li>SHA-1 hash of the password is computed locally</li>
+      <li>Only the first <strong>5 characters</strong> of the hash are sent to HIBP</li>
+      <li>HIBP returns all hashes matching that prefix</li>
+      <li>The matching is done locally — the full hash and password never leave the server</li>
+    </ol>
+  </div>
+
+</div>
+
+</body>
+</html>

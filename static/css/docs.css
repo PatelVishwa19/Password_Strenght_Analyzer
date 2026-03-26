@@ -1,0 +1,168 @@
+/* docs.css — API Documentation page styles */
+
+.docs-wrap {
+  max-width:  860px;
+  margin:     0 auto;
+  padding:    48px 48px 80px;
+  position:   relative;
+  z-index:    5;
+}
+
+.docs-title {
+  font-size:      48px;
+  font-weight:    800;
+  letter-spacing: -0.03em;
+  color:          var(--text);
+  margin-bottom:  8px;
+}
+
+.docs-subtitle {
+  font-family:   var(--font-mono);
+  font-size:     13px;
+  color:         var(--muted);
+  margin-bottom: 48px;
+  letter-spacing: 0.05em;
+}
+
+.docs-section {
+  border:        1px solid var(--border);
+  border-radius: 10px;
+  padding:       28px;
+  margin-bottom: 24px;
+  background:    var(--surface);
+}
+
+.docs-h2 {
+  font-size:     20px;
+  font-weight:   700;
+  color:         var(--text);
+  margin-bottom: 16px;
+}
+
+.docs-h3 {
+  font-size:     13px;
+  font-weight:   700;
+  color:         var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin:        20px 0 10px;
+  font-family:   var(--font-mono);
+}
+
+.docs-list {
+  font-family:  var(--font-mono);
+  font-size:    13px;
+  color:        #ccc;
+  line-height:  1.8;
+  padding-left: 20px;
+}
+
+.docs-list li { margin-bottom: 6px; }
+.docs-list strong { color: var(--accent); }
+
+.endpoint-header {
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+  margin-bottom: 12px;
+}
+
+.method {
+  font-family:    var(--font-mono);
+  font-size:      12px;
+  font-weight:    700;
+  padding:        4px 12px;
+  border-radius:  4px;
+  letter-spacing: 0.1em;
+}
+
+.method.post { background: rgba(198,241,53,0.15); color: var(--accent); border: 1px solid var(--accent); }
+.method.get  { background: rgba(77,223,255,0.15); color: var(--strong); border: 1px solid var(--strong); }
+
+.endpoint-path {
+  font-family: var(--font-mono);
+  font-size:   18px;
+  font-weight: 700;
+  color:       var(--text);
+}
+
+.endpoint-desc {
+  font-family:   var(--font-mono);
+  font-size:     13px;
+  color:         #aaa;
+  line-height:   1.7;
+  margin-bottom: 4px;
+}
+
+.endpoint-desc code {
+  background:    var(--surface2);
+  border:        1px solid var(--border);
+  padding:       1px 6px;
+  border-radius: 3px;
+  color:         var(--accent);
+  font-size:     12px;
+}
+
+.code-block {
+  background:    var(--surface2);
+  border:        1px solid var(--border);
+  border-radius: 8px;
+  padding:       18px 20px;
+  font-family:   var(--font-mono);
+  font-size:     12px;
+  color:         #ccc;
+  line-height:   1.7;
+  overflow-x:    auto;
+  white-space:   pre;
+  margin:        8px 0;
+}
+
+.docs-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-family:     var(--font-mono);
+  font-size:       12px;
+  margin-top:      10px;
+}
+
+.docs-table th {
+  text-align:     left;
+  padding:        10px 14px;
+  color:          var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom:  1px solid var(--border);
+  font-size:      11px;
+}
+
+.docs-table td {
+  padding:       10px 14px;
+  color:         #ccc;
+  border-bottom: 1px solid var(--border);
+}
+
+.docs-table tr:last-child td { border-bottom: none; }
+.docs-table td:first-child   { color: var(--accent); font-weight: 700; }
+
+.docs-link {
+  font-family:    var(--font-mono);
+  font-size:      12px;
+  color:          var(--accent);
+  text-decoration: none;
+  border:         1px solid var(--accent);
+  padding:        5px 14px;
+  border-radius:  100px;
+  letter-spacing: 0.08em;
+  transition:     background 0.2s, color 0.2s;
+}
+
+.docs-link:hover {
+  background: var(--accent);
+  color:      #0a0a0a;
+}
+
+@media (max-width: 720px) {
+  .docs-wrap { padding: 24px 20px 60px; }
+  .docs-title { font-size: 32px; }
+  .code-block { font-size: 11px; }
+}

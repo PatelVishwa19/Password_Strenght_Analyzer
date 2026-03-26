@@ -1,0 +1,19 @@
+# Password Strength Analyzer — requirements.txt
+
+# ── Core ──────────────────────────────────────────────────────
+flask>=3.0.0
+requests>=2.31.0          # HIBP API calls
+
+# ── Password analysis ─────────────────────────────────────────
+zxcvbn>=4.4.28            # Dictionary/pattern strength analysis
+
+# ── Rate limiting ─────────────────────────────────────────────
+flask-limiter>=3.5.0      # Rate limiting with Redis backend
+redis>=5.0.0              # Redis client for Flask-Limiter
+
+# ── Production server ─────────────────────────────────────────
+gunicorn>=21.2.0          # WSGI production server
+
+# ── Testing ───────────────────────────────────────────────────
+pytest>=7.4.0
+pytest-cov>=4.1.0         # Coverage reporting

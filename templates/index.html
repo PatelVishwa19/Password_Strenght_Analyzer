@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>Password Strength Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <!--
+    No inline styles anywhere in this file.
+    CSP header: style-src 'self' — inline styles are blocked.
+    All styles live in style.css.
+  -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header>
+  <div class="logo">Password<span> // </span>Strength Analyzer</div>
+  <div class="header-right">
+    <div class="security-indicator">
+      <span class="sec-dot"></span>
+      <span class="sec-label">Secure — Passwords never stored</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ HERO ════════════════ -->
+<section class="hero reveal">
+  <h1 class="hero-title">
+    <span class="accent">Password</span><br/>Strength<br/>Analyzer
+  </h1>
+  <p class="hero-sub">Real-time Analysis &nbsp;—&nbsp; Actionable Feedback &nbsp;—&nbsp; Secure by Design</p>
+</section>
+
+<!-- ══════════════ PRIVACY NOTICE ══════ -->
+<div class="privacy-bar reveal">
+  <div class="privacy-bar-inner">
+    <span class="privacy-icon">🔒</span>
+    <span>Your password is <strong>never stored, logged, or shared.</strong>
+    It is analyzed in memory only and immediately discarded after each request.</span>
+  </div>
+</div>
+
+<!-- ══════════════ ANALYZER CARD ═══════ -->
+<section class="analyzer-wrap reveal">
+  <div class="analyzer-card">
+
+    <div class="card-header">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span class="card-title">analyzer — real-time</span>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Common breach warning -->
+      <div class="common-warning" id="common-warning" role="alert" aria-live="polite">
+        <span aria-hidden="true">⚠</span>
+        <span>This password appears in known breach databases. Do not use it for any account.</span>
+      </div>
+
+      <!-- Password Input -->
+      <label class="input-label" for="password-input">Enter password to analyze</label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          id="password-input"
+          placeholder="Type your password here..."
+          autocomplete="new-password"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          maxlength="128"
+          aria-label="Password input"
+          aria-describedby="strength-badge"
+        />
+        <button class="toggle-btn" id="toggle-vis" type="button"
+                title="Toggle password visibility"
+                aria-label="Toggle password visibility">
+          <svg id="eye-icon" width="20" height="20" fill="none"
+               stroke="currentColor" stroke-width="2"
+               viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Strength Meter -->
+      <div class="strength-section" role="status" aria-live="polite">
+        <div class="strength-header">
+          <span class="strength-label">Strength Level</span>
+          <span class="strength-badge" id="strength-badge" aria-label="Strength">—</span>
+        </div>
+        <div class="meter-track" role="progressbar"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="4">
+          <div class="meter-seg" id="seg1"></div>
+          <div class="meter-seg" id="seg2"></div>
+          <div class="meter-seg" id="seg3"></div>
+          <div class="meter-seg" id="seg4"></div>
+        </div>
+      </div>
+
+      <!-- Score / Length / Entropy Stats -->
+      <div class="score-row">
+        <div class="score-box">
+          <span class="score-num" id="score-num" aria-label="Score">0</span>
+          <div class="score-desc">Score / 100</div>
+        </div>
+        <div class="score-box">
+          <span class="score-num" id="length-num" aria-label="Length">0</span>
+          <div class="score-desc">Characters</div>
+        </div>
+        <div class="score-box">
+          <span class="score-num" id="entropy-num" aria-label="Entropy">0</span>
+          <div class="score-desc">Entropy (bits)</div>
+        </div>
+      </div>
+
+      <!-- Criteria Checklist -->
+      <div class="criteria-grid" role="list">
+        <div class="criterion" id="c-length" role="listitem">
+          <div class="crit-icon" id="ci-length" aria-hidden="true">?</div>
+          <span class="crit-text">Minimum 8 characters</span>
+        </div>
+        <div class="criterion" id="c-length12" role="listitem">
+          <div class="crit-icon" id="ci-length12" aria-hidden="true">?</div>
+          <span class="crit-text">Recommended 12+ characters</span>
+        </div>
+        <div class="criterion" id="c-upper" role="listitem">
+          <div class="crit-icon" id="ci-upper" aria-hidden="true">?</div>
+          <span class="crit-text">Uppercase letters (A-Z)</span>
+        </div>
+        <div class="criterion" id="c-lower" role="listitem">
+          <div class="crit-icon" id="ci-lower" aria-hidden="true">?</div>
+          <span class="crit-text">Lowercase letters (a-z)</span>
+        </div>
+        <div class="criterion" id="c-number" role="listitem">
+          <div class="crit-icon" id="ci-number" aria-hidden="true">?</div>
+          <span class="crit-text">Numeric digits (0-9)</span>
+        </div>
+        <div class="criterion" id="c-symbol" role="listitem">
+          <div class="crit-icon" id="ci-symbol" aria-hidden="true">?</div>
+          <span class="crit-text">Special characters (@#!$%)</span>
+        </div>
+      </div>
+
+      <!-- Crack Time Estimates (shown after first analysis) -->
+      <div class="crack-section" id="crack-section" style="display:none;">
+        <div class="crack-title">Crack Time Estimates</div>
+        <div class="crack-grid" id="crack-grid"></div>
+      </div>
+
+      <!-- Pattern Detection (shown after first analysis) -->
+      <div class="patterns-section" id="patterns-section" style="display:none;">
+        <div class="patterns-title">Pattern Detection</div>
+        <div class="patterns-list" id="patterns-list"></div>
+      </div>
+
+      <!-- Security Feedback -->
+      <div class="feedback-section">
+        <div class="feedback-title">Security Feedback</div>
+        <div class="feedback-list" id="feedback-list" role="log" aria-live="polite">
+          <div class="feedback-item tip">
+            <span class="feedback-icon" aria-hidden="true">💡</span>
+            <span>Start typing to receive real-time security feedback and improvement tips.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HaveIBeenPwned Check (shown after first analysis) -->
+      <div class="hibp-section" id="hibp-section" style="display:none;">
+        <div class="hibp-title">Data Breach Check</div>
+        <p class="hibp-note">Check if this password appears in real-world data breaches using the
+          HaveIBeenPwned API. Uses k-anonymity — only the first 5 characters of your password's
+          SHA-1 hash are transmitted, never the password itself.</p>
+        <!--
+          BUG-6 FIX: button state managed entirely in JS try/finally block.
+          No onclick here — event listener in analyzer.js.
+        -->
+        <button class="hibp-btn" id="hibp-btn" type="button"
+                aria-label="Check HaveIBeenPwned database">
+        </button>
+        <div class="hibp-result" id="hibp-result" style="display:none;"
+             role="status" aria-live="polite"></div>
+      </div>
+
+      <!-- Download Security Report (shown after first analysis) -->
+      <div class="report-section" id="report-section" style="display:none;">
+        <!--
+          BUG-8 FIX: button innerHTML set by JS via resetReportBtn() helper.
+          No SVG markup inline here.
+        -->
+        <button class="report-btn" id="report-btn" type="button"
+                aria-label="Download security analysis report">
+        </button>
+      </div>
+
+      <!-- Password Generator -->
+      <div class="gen-section">
+        <div class="gen-title">Generate Strong Password</div>
+        <p class="gen-note">Generated passwords use cryptographically secure randomness
+          and are never transmitted.</p>
+        <div class="gen-options">
+          <label class="gen-option">
+            <input type="checkbox" id="gen-upper" checked/> Uppercase
+          </label>
+          <label class="gen-option">
+            <input type="checkbox" id="gen-lower" checked/> Lowercase
+          </label>
+          <label class="gen-option">
+            <input type="checkbox" id="gen-numbers" checked/> Numbers
+          </label>
+          <label class="gen-option">
+            <input type="checkbox" id="gen-symbols" checked/> Symbols
+          </label>
+          <label class="gen-option gen-length-label">
+            Length:&nbsp;
+            <!--
+              BUG-9 FIX: inline style removed — was violating CSP style-src 'self'.
+              Styling now in style.css under .gen-length-input
+            -->
+            <input type="number" id="gen-length" class="gen-length-input"
+                   value="16" min="12" max="64" aria-label="Generated password length"/>
+          </label>
+        </div>
+        <!-- gen-btn innerHTML set by JS initButtons() -->
+        <button class="gen-btn" id="gen-btn" type="button"
+                aria-label="Generate a strong password">
+        </button>
+        <div class="gen-output" id="gen-output" role="status" aria-live="polite">
+          <span id="gen-text"></span>
+          <button class="copy-btn" id="copy-btn" type="button"
+                  aria-label="Copy generated password">Copy</button>
+        </div>
+      </div>
+
+    </div><!-- /.card-body -->
+  </div><!-- /.analyzer-card -->
+</section>
+
+<!-- ══════════════ FEATURES ════════════ -->
+<div class="section-header reveal">
+  <span class="section-tag">Features</span>
+  <h2 class="section-h2">What We Check</h2>
+</div>
+<section class="info-grid reveal">
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">📏</div>
+    <div class="info-card-title">Length Check</div>
+    <div class="info-card-body">Validates minimum (8) and recommended (12+) character length requirements.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">🔡</div>
+    <div class="info-card-title">Character Diversity</div>
+    <div class="info-card-body">Checks for uppercase, lowercase, numbers, and symbols to reward complexity.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">🚨</div>
+    <div class="info-card-title">Breach Detection</div>
+    <div class="info-card-body">HaveIBeenPwned API check using k-anonymity — your password hash is never fully transmitted.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">🕵️</div>
+    <div class="info-card-title">Pattern Detection</div>
+    <div class="info-card-body">Detects keyboard walks, repeated characters, sequential patterns, dictionary words, and year patterns.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">⏱️</div>
+    <div class="info-card-title">Crack Time Estimation</div>
+    <div class="info-card-body">Estimates time to crack under online, offline GPU, and botnet attack models based on entropy.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">🧠</div>
+    <div class="info-card-title">zxcvbn Analysis</div>
+    <div class="info-card-body">Industry-standard zxcvbn library detects dictionary words, keyboard patterns, and repeated sequences.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">📊</div>
+    <div class="info-card-title">Entropy Score</div>
+    <div class="info-card-body">Calculates information-theoretic entropy in bits — a true measure of unpredictability.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">📄</div>
+    <div class="info-card-title">Security Report</div>
+    <div class="info-card-body">Download a full security analysis report. The password itself is never written into the report.</div>
+  </div>
+  <div class="info-card">
+    <div class="info-icon" aria-hidden="true">🔐</div>
+    <div class="info-card-title">Secure Generator</div>
+    <div class="info-card-body">Generates cryptographically strong passwords using the Web Crypto API (CSPRNG).</div>
+  </div>
+</section>
+
+<!-- External JS only — no inline scripts (CSP compliant) -->
+<script src="{{ url_for('static', filename='js/analyzer.js') }}"></script>
+
+</body>
+</html>
