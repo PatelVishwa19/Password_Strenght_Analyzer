@@ -13,9 +13,6 @@ import pytest
 from app import analyze_password, detect_patterns, estimate_crack_times, check_hibp
 
 
-# ─────────────────────────────────────────────
-# analyze_password — basic criteria
-# ─────────────────────────────────────────────
 class TestBasicCriteria:
 
     def test_empty_password(self):
@@ -75,9 +72,6 @@ class TestBasicCriteria:
         assert c["has_symbol"] is True
 
 
-# ─────────────────────────────────────────────
-# Score and level thresholds
-# ─────────────────────────────────────────────
 class TestScoringAndLevels:
 
     def test_common_password_score_capped(self):
@@ -98,7 +92,6 @@ class TestScoringAndLevels:
 
     def test_fair_password(self):
         r = analyze_password("password1A")
-        # Contains common word base so should be weak or fair
         assert r["level"] in ("weak", "fair")
 
     def test_score_max_100(self):
@@ -120,9 +113,6 @@ class TestScoringAndLevels:
         assert r_mixed["entropy"] > r_lower["entropy"]
 
 
-# ─────────────────────────────────────────────
-# Feedback messages
-# ─────────────────────────────────────────────
 class TestFeedback:
 
     def test_empty_feedback_has_tip(self):
@@ -157,9 +147,6 @@ class TestFeedback:
             assert len(fb["text"]) > 0
 
 
-# ─────────────────────────────────────────────
-# Pattern detection
-# ─────────────────────────────────────────────
 class TestPatternDetection:
 
     def test_repeated_chars_detected(self):
@@ -212,9 +199,6 @@ class TestPatternDetection:
         assert patterns == []
 
 
-# ─────────────────────────────────────────────
-# Crack time estimation
-# ─────────────────────────────────────────────
 class TestCrackTimes:
 
     def test_returns_all_models(self):
@@ -247,9 +231,6 @@ class TestCrackTimes:
             assert len(val["label"]) > 0
 
 
-# ─────────────────────────────────────────────
-# analyze_password return structure
-# ─────────────────────────────────────────────
 class TestReturnStructure:
 
     def test_all_top_level_keys_present(self):

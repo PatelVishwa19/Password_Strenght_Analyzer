@@ -1,11 +1,4 @@
-"""
-Keyboard Sequences for Pattern Detection
-Extracted from app.py for maintainability and reusability
-Last updated: 2025-01-15
-
-Contains common keyboard walks and sequential patterns that
-users typically use when creating passwords.
-"""
+"""Keyboard sequences for pattern detection."""
 
 KEYBOARD_SEQUENCES = [
     "qwerty", "qwertyuiop", "asdfgh", "asdfghjkl", "zxcvbn", "zxcvbnm",

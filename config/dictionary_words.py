@@ -1,11 +1,4 @@
-"""
-Dictionary Words for Pattern Detection
-Extracted from app.py for maintainability and reusability
-Last updated: 2025-01-15
-
-Contains common English dictionary words and names that are frequently
-used in passwords and reduce password entropy significantly.
-"""
+"""Dictionary words for pattern detection."""
 
 DICTIONARY_WORDS = {
     "password", "dragon", "master", "monkey", "shadow", "sunshine",

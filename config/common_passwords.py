@@ -1,11 +1,4 @@
-"""
-Common/Breached Passwords Database
-Extracted from app.py for maintainability and reusability
-Last updated: 2025-01-15
-
-This contains frequently used and publicly breached passwords
-that are commonly found in real-world password databases.
-"""
+"""Common and breached passwords database."""
 
 COMMON_PASSWORDS = {
     "password", "123456", "123456789", "12345678", "12345", "1234567",
