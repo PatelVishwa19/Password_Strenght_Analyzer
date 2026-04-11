@@ -1,40 +1,9 @@
 """
-Password Strength Analyzer — app.py  v2.1
-Professional Security Engineering Tool
-
-BUGS FIXED in this version:
-  BUG-1  level badge was computed BEFORE zxcvbn bonus and pattern penalty
-         were applied → badge could show "Strong" while score was actually 45
-         FIX: level is now derived from the FINAL adjusted score
-
-  BUG-2  HIBP count parsing failed silently on padded responses — the HIBP
-         API returns trailing \r on each line when Add-Padding:true is used,
-         causing int("12345\r") to raise ValueError and swallow real hits
-         FIX: strip() applied to both hash suffix and count before parsing
-
-  BUG-3  DICTIONARY_WORDS contained "batman" twice (duplicate in set literal)
-         FIX: deduplicated
-
-  BUG-4  StorageError from Flask-Limiter (Redis down) was unhandled — caused
-         an uncaught exception → 500 response instead of graceful fallback
-         FIX: StorageError is caught; app falls back to in-memory limiter
-
-  BUG-5  "batman" duplicate in DICTIONARY_WORDS produced inconsistent pattern
-         descriptions across runs (set iteration order)
-         FIX: covered by BUG-3 fix
-
-Security hardening (unchanged):
-  - Rate limiting: Flask-Limiter + Redis, falls back to in-memory
-  - Passwords NEVER logged, stored, or written anywhere
-  - Input length cap 128 chars (DoS prevention)
-  - Strict JSON input validation
-  - Security headers on every response
-  - Debug mode off by default
-  - Secret key from environment variable
-  - Global error handlers — no stack traces to client
-  - Host bound to 127.0.0.1 by default
+Password Strength Analyzer v2.1
+A professional security engineering tool for password entropy analysis.
+Author: [Vishwa Patel]
+License: MIT
 """
-
 import os
 import re
 import math
@@ -46,14 +15,12 @@ from datetime import datetime, timezone
 
 from flask import Flask, render_template, request, jsonify, Response
 
-# ── Optional: zxcvbn ──────────────────────────────────────────────
 try:
     from zxcvbn import zxcvbn as _zxcvbn
     ZXCVBN_AVAILABLE = True
 except ImportError:
     ZXCVBN_AVAILABLE = False
 
-# ── Optional: Flask-Limiter with Redis ───────────────────────────
 LIMITER_AVAILABLE = False
 limiter = None
 try:
@@ -63,14 +30,10 @@ try:
 except ImportError:
     pass
 
-# ─────────────────────────────────────────────
-# App initialisation
-# ─────────────────────────────────────────────
 app = Flask(__name__)
 app.config["SECRET_KEY"]          = os.environ.get("SECRET_KEY", os.urandom(32))
 app.config["PROPAGATE_EXCEPTIONS"] = False
 
-# ── Flask-Limiter setup (BUG-4 FIX: wrap in try/except) ──────────
 if LIMITER_AVAILABLE:
     try:
         redis_uri = os.environ.get("REDIS_URL", "memory://")
@@ -81,11 +44,9 @@ if LIMITER_AVAILABLE:
             storage_uri=redis_uri,
         )
     except Exception:
-        # Redis unavailable — fall back to in-memory rate limiter below
         LIMITER_AVAILABLE = False
         limiter = None
 
-# ── Fallback in-memory rate limiter ──────────────────────────────
 RATE_LIMIT  = 30
 RATE_WINDOW = 60
 _rate_store: dict = defaultdict(list)
@@ -98,7 +59,7 @@ def get_client_ip() -> str:
 
 def is_rate_limited(ip: str) -> bool:
     if LIMITER_AVAILABLE and limiter is not None:
-        return False  # Flask-Limiter handles it via decorators/defaults
+        return False  
     now    = time.time()
     cutoff = now - RATE_WINDOW
     hist   = [t for t in _rate_store[ip] if t > cutoff]
@@ -108,10 +69,6 @@ def is_rate_limited(ip: str) -> bool:
     _rate_store[ip].append(now)
     return False
 
-
-# ─────────────────────────────────────────────
-# Security headers — applied to every response
-# ─────────────────────────────────────────────
 @app.after_request
 def set_security_headers(response):
     response.headers["X-Content-Type-Options"]  = "nosniff"
@@ -132,14 +89,9 @@ def set_security_headers(response):
         "form-action 'self'"
     )
     response.headers["Server"] = ""
-    # Uncomment when deployed with HTTPS/SSL:
-    # response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     return response
 
 
-# ─────────────────────────────────────────────
-# Common / breached passwords list
-# ─────────────────────────────────────────────
 COMMON_PASSWORDS = {
     "password", "123456", "123456789", "12345678", "12345", "1234567",
     "qwerty", "abc123", "password1", "111111", "iloveyou", "admin",
@@ -152,16 +104,12 @@ COMMON_PASSWORDS = {
     "summer", "winter", "1234", "passw0rd", "p@ssword", "qwerty1",
 }
 
-# ─────────────────────────────────────────────
-# Keyboard sequences for pattern detection
-# ─────────────────────────────────────────────
 KEYBOARD_SEQUENCES = [
     "qwerty", "qwertyuiop", "asdfgh", "asdfghjkl", "zxcvbn", "zxcvbnm",
     "1234567890", "0987654321", "abcdefghij", "abcdef",
     "qweasdzxc", "!@#$%^&*()",
 ]
 
-# BUG-3 FIX: removed duplicate "batman"
 DICTIONARY_WORDS = {
     "password", "dragon", "master", "monkey", "shadow", "sunshine",
     "princess", "welcome", "football", "baseball", "soccer", "batman",
@@ -171,12 +119,6 @@ DICTIONARY_WORDS = {
     "internet", "network", "security", "freedom", "starwars",
 }
 
-
-# ─────────────────────────────────────────────
-# HaveIBeenPwned k-anonymity check
-# Only first 5 chars of SHA-1 hash are sent —
-# never the full password or full hash.
-# ─────────────────────────────────────────────
 def check_hibp(password: str) -> dict:
     try:
         sha1   = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
@@ -217,9 +159,6 @@ def check_hibp(password: str) -> dict:
         return {"pwned": False, "count": 0, "error": "HIBP API unavailable"}
 
 
-# ─────────────────────────────────────────────
-# Crack time estimation
-# ─────────────────────────────────────────────
 def estimate_crack_times(entropy: float) -> dict:
     guesses = 2 ** entropy if entropy > 0 else 1
 
@@ -252,14 +191,10 @@ def estimate_crack_times(entropy: float) -> dict:
     return result
 
 
-# ─────────────────────────────────────────────
-# Pattern detection
-# ─────────────────────────────────────────────
 def detect_patterns(password: str) -> list:
     patterns = []
     lower    = password.lower()
 
-    # 1. Repeated characters (aaa, 111)
     repeated = re.findall(r'(.)\1{2,}', password)
     if repeated:
         patterns.append({
@@ -268,7 +203,6 @@ def detect_patterns(password: str) -> list:
             "severity":    "high",
         })
 
-    # 2. Sequential numbers (1234, 9876)
     if re.search(
         r'(0123|1234|2345|3456|4567|5678|6789|'
         r'9876|8765|7654|6543|5432|4321|3210)',
@@ -280,7 +214,6 @@ def detect_patterns(password: str) -> list:
             "severity":    "high",
         })
 
-    # 3. Sequential letters (abcd, zyxw)
     if re.search(
         r'(abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|'
         r'mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz|'
@@ -294,7 +227,6 @@ def detect_patterns(password: str) -> list:
             "severity":    "high",
         })
 
-    # 4. Keyboard sequences (qwerty, asdf)
     for seq in KEYBOARD_SEQUENCES:
         if seq in lower or seq[::-1] in lower:
             patterns.append({
@@ -302,9 +234,9 @@ def detect_patterns(password: str) -> list:
                 "description": f"Keyboard walk pattern detected: '{seq}'",
                 "severity":    "high",
             })
-            break  # report once
+            break  
 
-    # 5. Dictionary words
+    
     found_words = sorted({w for w in DICTIONARY_WORDS if w in lower})
     if found_words:
         patterns.append({
@@ -313,7 +245,6 @@ def detect_patterns(password: str) -> list:
             "severity":    "medium",
         })
 
-    # 6. Year pattern (1960–2029)
     if re.search(r'(19[6-9]\d|20[0-2]\d)', password):
         patterns.append({
             "type":        "year_pattern",
@@ -321,7 +252,6 @@ def detect_patterns(password: str) -> list:
             "severity":    "medium",
         })
 
-    # 7. All digits or all letters
     if password.isdigit():
         patterns.append({
             "type":        "all_digits",
@@ -347,24 +277,17 @@ def _is_common_variant(password: str) -> bool:
     lower = password.lower()
     if lower in COMMON_PASSWORDS:
         return True
-    # Strip all non-alpha characters and check
     stripped = re.sub(r'[^a-z]', '', lower)
     if stripped and stripped in COMMON_PASSWORDS:
         return True
-    # Strip trailing digits/symbols (e.g. "password123!" → "password")
     base_tail = re.sub(r'[\d\W_]+$', '', lower)
     if base_tail and base_tail in COMMON_PASSWORDS:
         return True
-    # Strip leading digits/symbols (e.g. "123password" → "password")
     base_head = re.sub(r'^[\d\W_]+', '', lower)
     if base_head and base_head in COMMON_PASSWORDS:
         return True
     return False
 
-
-# ─────────────────────────────────────────────
-# Core password analysis
-# ─────────────────────────────────────────────
 def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
     """
     Full password analysis.
@@ -379,7 +302,6 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
     meets_rec  = length >= 12
     is_common  = _is_common_variant(password)
 
-    # Entropy (bits)
     pool = 0
     if has_lower:  pool += 26
     if has_upper:  pool += 26
@@ -387,7 +309,6 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
     if has_symbol: pool += 32
     entropy = round(length * math.log2(pool), 1) if pool > 0 else 0
 
-    # Base score (0–100)
     score = 0
     if length >= 6:  score += 10
     if length >= 8:  score += 15
@@ -401,7 +322,6 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
     if is_common: score = min(score, 15)
     score = min(score, 100)
 
-    # zxcvbn bonus
     zxcvbn_result = None
     if ZXCVBN_AVAILABLE and length > 0:
         try:
@@ -417,17 +337,15 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
                     for m in z.get("sequence", [])
                 ],
             }
-            score = min(100, score + z["score"] * 5)   # 0–20 bonus
+            score = min(100, score + z["score"] * 5)   
         except Exception:
             pass
 
-    # Pattern penalty
     patterns     = detect_patterns(password) if length > 0 else []
     severe_count = sum(1 for p in patterns if p["severity"] == "high")
     score        = max(0, score - (severe_count * 8))
     score        = min(score, 100)
 
-    # BUG-1 FIX: level derived from FINAL score (after all adjustments)
     if length == 0:               level = "none"
     elif is_common or score < 30: level = "weak"
     elif score < 55:              level = "fair"
@@ -439,15 +357,12 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
         "strong": "Strong", "vstrong": "Very Strong",
     }
 
-    # Crack time estimates
     crack_times = estimate_crack_times(entropy) if length > 0 else {}
 
-    # HIBP (only when explicitly requested)
     hibp = None
     if check_hibp_api and length > 0:
         hibp = check_hibp(password)
 
-    # Feedback messages — built purely from analysis results, no dummy data
     feedback = []
     if length == 0:
         feedback.append({"type": "tip", "icon": "💡",
@@ -523,9 +438,6 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
     }
 
 
-# ─────────────────────────────────────────────
-# Routes
-# ─────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -657,9 +569,6 @@ def download_report():
     )
 
 
-# ─────────────────────────────────────────────
-# Error handlers — never expose internals
-# ─────────────────────────────────────────────
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({"error": "Not found."}), 404
@@ -677,10 +586,6 @@ def server_error(e):
     app.logger.error(f"500: {e}")
     return jsonify({"error": "Server error."}), 500
 
-
-# ─────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(debug=debug, host="127.0.0.1", port=5000)
