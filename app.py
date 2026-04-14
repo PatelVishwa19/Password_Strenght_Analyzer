@@ -239,6 +239,29 @@ def detect_patterns(password: str) -> list:
             "severity":    "medium",
         })
 
+    # NEW: Detect "Name_Number" pattern (e.g., "Sam_123", "Heet_1234", "John456")
+    # Catches ANY password with: [Word/Name] + [Separator] + [Sequential Numbers]
+    # Pattern: Capitalized word + optional separator + digits
+    name_number_match = re.match(r'^[A-Z][a-z]+[_\-\.!@#$%]*(\d{2,})$', password)
+    if name_number_match:
+        numbers_part = name_number_match.group(1)
+        # Check if numbers are sequential (e.g., 123, 1234, 456, 789, etc.)
+        is_sequential = False
+        for i in range(len(numbers_part) - 1):
+            digit = int(numbers_part[i])
+            next_digit = int(numbers_part[i + 1])
+            # Check if digits increment by 1 or decrement by 1
+            if abs(next_digit - digit) == 1:
+                is_sequential = True
+                break
+        
+        if is_sequential or numbers_part in ['123', '321', '1234', '4321', '456', '789', '012']:
+            patterns.append({
+                "type":        "name_number_pattern",
+                "description": f"Weak pattern detected: Name + numbers (e.g., {password[:4]}...). Highly predictable.",
+                "severity":    "high",
+            })
+
     return patterns
 
 
@@ -317,8 +340,31 @@ def analyze_password(password: str, check_hibp_api: bool = False) -> dict:
 
     patterns     = detect_patterns(password) if length > 0 else []
     severe_count = sum(1 for p in patterns if p["severity"] == "high")
-    score        = max(0, score - (severe_count * 8))
-    score        = min(score, 100)
+    medium_count = sum(1 for p in patterns if p["severity"] == "medium")
+    
+    # Penalize high-severity patterns (sequential numbers, keyboard walks, repeated chars)
+    score = max(0, score - (severe_count * 15))
+    
+    # Penalize medium-severity patterns like dictionary words
+    score = max(0, score - (medium_count * 10))
+    
+    # Extra penalty for "Name_Number" pattern (e.g., Sam_123, John456, Heet_1234)
+    has_name_number = any(p["type"] == "name_number_pattern" for p in patterns)
+    if has_name_number:
+        score = max(0, score - 25)  # Heavy penalty for this highly predictable pattern
+    
+    # Double penalty: if password has BOTH weak patterns AND numbers/symbols added to them
+    # (e.g., "Sam_123", "Password123", "Qwerty!") - common but weak schemes
+    has_dict_word = any(p["type"] == "dictionary_word" for p in patterns)
+    has_seq_or_kbd = any(p["type"] in ["sequential_numbers", "keyboard_sequence"] for p in patterns)
+    
+    if has_dict_word and (has_number or has_symbol):
+        score = max(0, score - 20)
+    
+    if has_seq_or_kbd and has_upper:
+        score = max(0, score - 15)
+    
+    score = min(score, 100)
 
     if length == 0:               level = "none"
     elif is_common or score < 30: level = "weak"
